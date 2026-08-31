@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BULK Strategy Lab</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">B</div>
+          <div>
+            <h1>BULK Strategy Lab</h1>
+            <p>WS paper live</p>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>Rodada</span>
+          <select id="runSelect"></select>
+        </label>
+
+        <nav id="tokenNav" class="token-nav" aria-label="Tokens"></nav>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p id="routeLabel" class="eyebrow">WS Live</p>
+            <h2 id="pageTitle">Dashboard</h2>
+          </div>
+          <div class="top-actions">
+            <a class="icon-btn" href="/ws-live" title="WS Live" aria-label="WS Live">&#8962;</a>
+            <button id="refreshBtn" class="icon-btn" title="Atualizar dados" aria-label="Atualizar dados">&#8635;</button>
+          </div>
+        </header>
+
+        <section id="content"></section>
+      </main>
+    </div>
+
+    <script src="/data.js"></script>
+    <script src="/app.js?v=20260602-historical-1"></script>
+  </body>
+</html>
