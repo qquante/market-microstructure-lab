@@ -39,3 +39,11 @@ These checks use offline fixtures or controlled backends.
 ## License
 
 No open-source license has been granted. Redistribution terms remain to be defined.
+
+## Offline validation
+
+The Python modules use the standard library. Run the fixture suite without starting live feeds:
+
+```console
+python -m unittest discover -s tests -v
+```
