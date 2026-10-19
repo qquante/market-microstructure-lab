@@ -1,0 +1,119 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "serve_dashboard.py", "--host", "0.0.0.0", "--port", "8765"]
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      BULK_REDIS_LIVE_KEY: bulk:paper_live:latest
+      BULK_REDIS_LIVE_CHANNEL: bulk:paper_live:updates
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./backtests:/app/backtests:ro
+      - ./backtests_spread20:/app/backtests_spread20:ro
+      - ./dashboard:/app/dashboard
+      - ./paper_live:/app/paper_live
+      - ./ws_live:/app/ws_live
+    restart: unless-stopped
+
+  paper-live:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command:
+      [
+        "python",
+        "paper_live_monitor.py",
+        "--interval-seconds",
+        "15",
+        "--duration-hours",
+        "0",
+        "--include-secondary",
+        "--output-dir",
+        "/app/paper_live",
+        "--dashboard-live-json",
+        "/app/dashboard/live_data.json"
+      ]
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      BULK_REDIS_LIVE_KEY: bulk:paper_live:latest
+      BULK_REDIS_LIVE_CHANNEL: bulk:paper_live:updates
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./dashboard:/app/dashboard
+      - ./paper_live:/app/paper_live
+    restart: unless-stopped
+
+  paper-ws:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command:
+      [
+        "python",
+        "websocket_paper_worker.py",
+        "--duration-seconds",
+        "0",
+        "--output-dir",
+        "/app/ws_live_curated",
+        "--dashboard-json",
+        "/app/dashboard/ws_data.json",
+        "--account-equity",
+        "100",
+        "--strategy-mode",
+        "curated",
+        "--notional",
+        "100",
+        "--account-daily-limit",
+        "3",
+        "--global-daily-limit",
+        "40"
+      ]
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./dashboard:/app/dashboard
+      - ./ws_live_curated:/app/ws_live_curated
+    restart: unless-stopped
+
+  historical-research:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["research"]
+    command:
+      [
+        "python",
+        "historical_research_export.py",
+        "--input-dir",
+        "/app/backtests",
+        "--output-json",
+        "/app/dashboard/historical_data.json",
+        "--cap",
+        "40",
+        "--scenario",
+        "phase1_tier1"
+      ]
+    volumes:
+      - ./backtests:/app/backtests:ro
+      - ./dashboard:/app/dashboard
+    restart: "no"
