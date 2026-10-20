@@ -1,76 +1,42 @@
 # Market Microstructure Lab
 
-**Order-book normalization, closed-timeframe research and paper-market state.**
-
 ![Language: Python](https://img.shields.io/badge/Language-Python-3776AB?style=flat-square&logo=python) ![Mode: Paper research](https://img.shields.io/badge/Mode-Paper%20research-555555?style=flat-square) [![License: MIT](https://img.shields.io/badge/License-MIT-555555?style=flat-square)](LICENSE)
 
-[Overview](#overview) · [Quickstart](#quickstart) · [Example](#example) · [Validation](#validation) · [Documentation](#documentation)
+A Python research workspace for order-book normalization, closed-timeframe features, backtests and persisted paper-market state.
 
-## Overview
+Its useful engineering boundary is consistency: the same observations need to mean the same thing in a historical calculation, a WebSocket worker and a dashboard. The repository includes regressions for those boundaries instead of relying only on a headline backtest result.
 
-A Python research workspace for order-book normalization, backtesting and paper-market monitoring.
+## Research invariants covered by the tests
 
-**Stack:** Python · SQLite · Redis RESP client · WebSocket · JavaScript/HTML dashboard
+- Non-finite numeric input is rejected or replaced by an explicit fallback.
+- Empty or crossed order books do not become valid snapshots.
+- Higher-timeframe context uses closed candles, avoiding access to an unfinished future window.
+- `tx_on` and `tx_off` profiles preserve different time-exit behavior.
+- Paper positions and strategy replicas retain their exit profile in SQLite.
 
-## Keep market structure and simulated outcomes distinct
+These cases are visible in [test_bulk_ready.py](tests/test_bulk_ready.py).
 
-| Component | Behavior |
-| --- | --- |
-| Normalize | Order-book helpers reject invalid, empty and crossed inputs. |
-| Research | Backtest helpers align closed timeframes and exit conditions. |
-| Inspect | SQLite paper state and optional Redis updates feed a local dashboard. |
-
-## Processing path
-
-```mermaid
-flowchart LR
-  N0["Market observations"]
-  N1["normalization/features"]
-  N2["paper/backtest logic"]
-  N3["SQLite and optional Redis"]
-  N4["dashboard"]
-N0 --> N1 --> N2 --> N3 --> N4
-```
-
-## Quickstart
+## Try the normalizer offline
 
 ```console
+python -c "from bulk_market_data import normalize_orderbook; print(normalize_orderbook({'levels': [[], []]}, 'BTC-USD'))"
 python -m unittest discover -s tests -v
 ```
 
-The commands above install prerequisites or run the specified offline checks. Live collection, cloud operations, messaging and trading are separate operational steps when present.
+The first command returns `None` for the synthetic empty book. It uses no feed or trading account.
 
-## Example
+## Research and paper surfaces
 
-**Inspect the workflow**
-
-Use the offline tests to inspect valid and rejected order books. Follow normalized observations into feature/backtest calculations and persisted paper state. Dashboard and live-feed commands require separate data/services; a paper position is simulated state, not an executed order.
-
-## Configuration and storage
-
-Python modules use the standard library. SQLite persists research/paper state and a Redis RESP client can publish updates. External feeds and historical datasets are separate inputs.
-
-## Repository guide
-
-| Location | Responsibility |
+| Surface | Implementation |
 | --- | --- |
-| [bulk_market_data.py](bulk_market_data.py) | Market observations |
-| [bulk_micro_scalper_backtest.py](bulk_micro_scalper_backtest.py) | Backtest calculations |
-| [paper_live_monitor.py](paper_live_monitor.py) | Paper monitoring |
-| [tests](tests) | Offline regression checks |
+| Market-data normalization | [bulk_market_data.py](bulk_market_data.py) |
+| Indicators, alignment and simulated exits | [bulk_micro_scalper_backtest.py](bulk_micro_scalper_backtest.py) |
+| Polling-based paper positions | [paper_live_monitor.py](paper_live_monitor.py) |
+| WebSocket paper worker | [websocket_paper_worker.py](websocket_paper_worker.py) |
+| Dashboard data generation | [dashboard/build_dashboard_data.py](dashboard/build_dashboard_data.py) |
 
-## Validation
+Core research modules use Python's standard library; feeds, datasets and optional Redis connectivity are separate operational inputs. A paper account is simulated state. Results from these paths do not establish live fill quality or profitability, and excluded third-party SDK downloads are not represented as original implementation.
 
-These checks use offline fixtures or controlled backends.
+**Technology:** Python · SQLite · Redis RESP client · WebSocket · JavaScript/HTML dashboard
 
-## Scope and operational boundaries
-
-Historical simulations and paper monitoring do not establish live profitability or fill quality. Downloaded third-party Rust SDKs are excluded and are not represented as original implementation.
-
-## Documentation
-
-- The repository guide above links directly to the implementation and configuration files.
-
-## License and attribution
-
-Project-authored source code is licensed under the [MIT License](LICENSE). Third-party components and datasets retain their respective rights and licenses.
+Project-authored source: [MIT](LICENSE). Third-party components retain their own notices and terms.
